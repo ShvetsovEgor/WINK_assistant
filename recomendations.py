@@ -1,3 +1,4 @@
+import re
 import sqlite3 as sl
 import pymorphy2
 
@@ -5,8 +6,8 @@ import pymorphy2
 def normalize(s):
     morph = pymorphy2.MorphAnalyzer()
     st = set()
-
-    for x in s.split():
+    opt = re.sub(r'[^\w\s]', '', s)
+    for x in opt.split():
         p = morph.parse(x)[0]
         if morph.parse(x)[0].tag.POS not in ['NPRO', 'PRED', 'PREP', 'CONJ', 'PRCL', 'INTJ']:
             st.add(p.normal_form.lower())
