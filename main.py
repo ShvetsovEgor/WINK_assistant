@@ -1,8 +1,11 @@
 import os
 from flask import Flask, render_template, request
-
+from back.convert import convert_value
+import eel
 
 app = Flask(__name__)
+
+
 @app.route('/')
 def start():
     return render_template("start.html")
@@ -11,6 +14,11 @@ def start():
 @app.route('/ques', methods=["POST", "GET"])
 def base():
     return render_template("base.html")
+
+
+@eel.expose
+def convert_value_py(value: float, from_cur: str, to_cur: str) -> float:
+    return 1
 
 
 if __name__ == "__main__":
