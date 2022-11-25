@@ -1,4 +1,3 @@
-import sqlite3 as sl
 from pyaspeller import YandexSpeller
 import pymorphy2
 import random
@@ -6,18 +5,6 @@ import time
 import requests
 from bs4 import BeautifulSoup
 from Levenshtein import ratio
-
-
-def normalize(s):
-    morph = pymorphy2.MorphAnalyzer()
-    st = set()
-
-    for x in s.split():
-        p = morph.parse(x)[0]
-        if morph.parse(x)[0].tag.POS not in ['NPRO', 'PRED', 'PREP', 'CONJ', 'PRCL', 'INTJ']:
-            st.add(p.normal_form.lower())
-    return st
-
 
 morph = pymorphy2.MorphAnalyzer()
 
@@ -51,7 +38,7 @@ def parse_synonyms(word):
     bs = parse_url(url)
     i = 1
     tmp = bs.find(f'id="as{i}"')
-    while tmp != -1 and i <= 5:
+    while tmp != -1:
         S = bs[tmp:tmp + 100]
         L = S.find('>')
         R = S.find('<')
@@ -65,7 +52,7 @@ def parse_synonyms(word):
 def clear(q):
     q = list(q.lower())
     for i in range(len(q)):
-        if not q[i].isalpha():
+        if (not q[i].isalpha()):
             q[i] = ' '
     q = ''.join(q)
     q = q.split()
@@ -82,17 +69,6 @@ def clear(q):
     return norm
 
 
-def compare(faq, syn_list):
-    q = clear(faq[1])
-    # print(q)
-    CNT = 0
-    for el in syn_list:
-        CNT += min(1 - ratio(s1, s2) for s1 in el for s2 in q)
-    # if faq[0] == 116 or faq[0] == 2:
-    # print(faq, CNT)
-    return CNT
-
-
 def process(query):
     q = clear(query)
     res = []
@@ -102,25 +78,62 @@ def process(query):
     return res
 
 
-def search_film_by_description(description):
+def parse_faq():
+    # bs = ""
+    f = open('parse.txt', 'r', encoding='utf8')
+    lines = f.readlines()
+    html_selected = [lines[2 * i + 2].rstrip('\n') for i in range(18)]
+    # print(html_selected)
+    # bs = ''.join(lines)
+    f.close()
+    # for i in range(18):
+    # url = f'https://wink.ru/faq?selected={i}'
+    # bs += '\n' + parse_url(url)
+    # print(i)
+    # print(bs)
+    # f = open('parse.txt', 'w', encoding='utf8')
+    # f.write(bs + '\n')
+    # f.close()
+
+    faq_list = []
+    for selected in range(18):
+        for i in range(300):
+            tmp = html_selected[selected].find(f'"/faq/{i}"')
+            tmp2 = html_selected[selected].find('root_r1lbxtse title_t1mrmeg6 root_header1_r1et8e7w')
+            if tmp != -1:
+                S = html_selected[selected][tmp + 15:tmp + 200]
+                L = S.find('>')
+                R = S.find('<')
+                S2 = html_selected[selected][tmp2:tmp2 + 200]
+                L2 = S2.find('>')
+                R2 = S2.find('<')
+                faq_list.append([selected, i, '*** ' + S2[L2 + 1:R2] + ' *** ' + S[L + 1:R]])
+            # if (i == 1):
+            # print(S)
+    faq_list.sort()
+    return (faq_list)
+
+
+def compare(faq, syn_list):
+    q = clear(faq[2])
+    # print(q)
+    CNT = 0
+    for el in syn_list:
+        CNT += min(1 - ratio(s1, s2) for s1 in el for s2 in q)
+    # if faq[0] == 116 or faq[0] == 2:
+    # print(faq, CNT)
+    return CNT
+
+
+faq_list = parse_faq()
+
+while True:
+    query = input()
     speller = YandexSpeller()
-    description = speller.spelled(description)
-    con = sl.connect('db.db')
-    cur = con.cursor()
-    result = cur.execute("SELECT * FROM ITEMS").fetchall()
-    result = [[x[0], x[1] + " " + x[2] + " " + x[3]] for x in result]
-    syn_list = process(description)
-    result.sort(key=lambda x: compare(x, syn_list))
+    query = speller.spelled(query)
+    syn_list = process(query)
+    faq_list.sort(key=lambda x: compare(x, syn_list))
 
-    # norm_request_set = normalize(description)
-    # for el in result:
-    # if len(normalize(el[2]).intersection(norm_request_set)) / len(norm_request_set) >= 0.5:
-    # result_of_search[el[0]] = {'title': el[1], 'link': f'https://wink.ru/media_items/{el[0]}'}
-    # return result_of_search
-    # for el in result[:10]:
-    #     print(compare(el, syn_list), el)
-    # print('=====')
-    return result[0]
-
-
-print(search_film_by_description(input()))
+    for el in faq_list[:10]:
+        print(el, compare(el, syn_list))
+    print('=====')
