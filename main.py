@@ -22,7 +22,7 @@ def convert_value_py(value: float, from_cur: str, to_cur: str) -> float:
 
 
 if __name__ == "__main__":
-    app.run(port=8030, host="127.0.0.1")
+    app.run(port=8033, host="127.0.0.1")
 
 '''if __name__ == "__main__":
     db_session.global_init("db/service.db")
